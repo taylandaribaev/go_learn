@@ -1,7 +1,6 @@
 package scanner
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -11,25 +10,68 @@ type Scanner struct {
 }
 
 func NewScanner(path string) *Scanner {
-	return &Scanner{path: path}
+	cleanPath := filepath.Clean(path)
+	return &Scanner{path: cleanPath}
 }
 
-func (s *Scanner) Scan() (int64, error) {
-	var totalSize int64
+func (s *Scanner) Scan() (*Dir, error) {
+	root := &Dir{
+		Name: filepath.Base(s.path),
+		Path: s.path,
+	}
+
+	dirMap := map[string]*Dir{
+		s.path: root,
+	}
 
 	err := filepath.WalkDir(s.path, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("error walking path %s: %w", path, err)
+			return err
 		}
-		if !d.IsDir() {
-			info, err := d.Info()
-			if err != nil {
-				return fmt.Errorf("Error getting info for path %s: %w", path, err)
+
+		if d.IsDir() {
+			if path == s.path {
+				return nil
 			}
-			totalSize += info.Size()
+
+			parentPath := filepath.Dir(path)
+			parent, ok := dirMap[parentPath]
+
+			if !ok {
+				return nil
+			}
+
+			newDir := &Dir{
+				Name: d.Name(),
+				Path: path,
+			}
+
+			parent.AddDir(newDir)
+			dirMap[path] = newDir
+			return nil
 		}
+
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		parentPath := filepath.Dir(path)
+		parent := dirMap[parentPath]
+
+		file := File{
+			Name: d.Name(),
+			Path: path,
+			Size: info.Size(),
+		}
+
+		parent.AddFile(file)
 		return nil
 	})
 
-	return totalSize, err
+	if err != nil {
+		return nil, err
+	}
+	root.RecalcSize()
+	return root, nil
 }
