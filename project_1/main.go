@@ -25,5 +25,5 @@ func main() {
 		fmt.Println("Error scanning directory:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Total size: %s\n", formatter.FormatSize(size, human))
+	fmt.Printf("Total size: %s\n", formatter.FormatSizeExternal(size, human))
 }

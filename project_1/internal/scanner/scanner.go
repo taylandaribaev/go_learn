@@ -7,17 +7,17 @@ import (
 )
 
 type Scanner struct {
-	Path string
+	path string
 }
 
 func NewScanner(path string) *Scanner {
-	return &Scanner{Path: path}
+	return &Scanner{path: path}
 }
 
 func (s *Scanner) Scan() (int64, error) {
 	var totalSize int64
 
-	err := filepath.WalkDir(s.Path, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(s.path, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("error walking path %s: %w", path, err)
 		}
