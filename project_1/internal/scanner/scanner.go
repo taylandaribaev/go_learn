@@ -59,7 +59,7 @@ func (s *Scanner) Scan() (*Dir, error) {
 		parentPath := filepath.Dir(path)
 		parent := dirMap[parentPath]
 
-		file := File{
+		file := &File{
 			Name: d.Name(),
 			Path: path,
 			Size: info.Size(),

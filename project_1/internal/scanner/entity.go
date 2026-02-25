@@ -1,63 +1,54 @@
 package scanner
 
 import (
-	"fmt"
 	"strings"
-
-	"dirsize/internal/formatter"
 )
 
-type File struct {
-	Name string
-	Path string
-	Size int64
+type PrintSizer interface {
+	Print(depth int, prefix string, human bool)
+	GetSize() int64
 }
 
-type Dir struct {
-	Name  string
-	Path  string
-	Files []File
-	Dirs  []*Dir
-	Size  int64
+type PrintSizerWithRecalc interface {
+	PrintSizer
+	GetDepth() int
+	SetDepth(depth int)
+	AddFile(file PrintSizer)
+	AddDir(dir PrintSizerWithRecalc)
+	RecalcSize() int64
+	PrintTree(human bool, fullTree bool)
 }
 
-func (d *Dir) AddFile(file File) {
-	d.Files = append(d.Files, file)
-	d.Size += file.Size
+func colorByDepth(depth int) (int, int, int) {
+	// базовый светлый цвет
+	baseR := 120
+	baseG := 180
+	baseB := 255
+
+	// затемнение
+	factor := depth * 20
+
+	r := max(baseR-factor, 0)
+	g := max(baseG-factor, 0)
+	b := max(baseB-factor, 0)
+
+	return r, g, b
 }
 
-func (d *Dir) AddDir(dir *Dir) {
-	d.Dirs = append(d.Dirs, dir)
-}
+func (d *Dir) PrintTree(human bool, fullTree bool) {
+	prefix := strings.Repeat("  ", d.GetDepth())
 
-func (d *Dir) RecalcSize() int64 {
-	var total int64
-
-	for _, f := range d.Files {
-		total += f.Size
-	}
-	for _, sub := range d.Dirs {
-		total += sub.RecalcSize()
-	}
-
-	d.Size = total
-	return total
-}
-
-func (d *Dir) Print(indent int, human bool, fullTree bool) {
-	prefix := strings.Repeat("  ", indent)
-
-	fmt.Printf("%s📁 %s (%s)\n", prefix, d.Name, formatter.FormatSizeExternal(d.Size, human))
-
+	d.Print(d.GetDepth(), prefix, human)
 	for _, file := range d.Files {
-		fmt.Printf("%s  📄 %s (%s)\n", prefix, file.Name, formatter.FormatSizeExternal(file.Size, human))
+		file.Print(d.GetDepth(), prefix, human)
 	}
 
-	for _, dir := range d.Dirs {
+	for _, childDir := range d.Dirs {
 		if !fullTree {
-			fmt.Printf("%s  📁 %s (%s)\n", prefix, dir.Name, formatter.FormatSizeExternal(dir.Size, human))
+			childDir.Print(d.GetDepth(), prefix+"  ", human)
 			continue
 		}
-		dir.Print(indent+1, human, fullTree)
+		childDir.SetDepth(d.GetDepth() + 1)
+		childDir.PrintTree(human, fullTree)
 	}
 }

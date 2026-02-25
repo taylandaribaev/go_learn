@@ -31,5 +31,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	tree.Print(0, *human, *fullTree)
+	tree.PrintTree(*human, *fullTree)
 }
